@@ -1,0 +1,23 @@
+
+irom.elf:     file format elf32-tradlittlemips
+
+Sections:
+Idx Name          Size      VMA       LMA       File off  Algn
+  0 .startext     00000160  bfc00000  bfc00000  00010000  2**2
+                  CONTENTS, ALLOC, LOAD, READONLY, CODE
+  1 .tcsm_copy    00000204  bfc00160  bfc00160  00010160  2**2
+                  CONTENTS, ALLOC, LOAD, DATA
+  2 .reptext      00000094  bfc00380  bfc00380  00010380  2**0
+                  CONTENTS, ALLOC, LOAD, READONLY, CODE
+  3 .text         00003af0  bfc00420  bfc00420  00010420  2**4
+                  CONTENTS, ALLOC, LOAD, READONLY, CODE
+  4 .rodata       00000060  bfc03f10  bfc03f10  00013f10  2**4
+                  CONTENTS, ALLOC, LOAD, READONLY, DATA
+  5 .tcsm_ram     000001bc  f4000000  f4000000  00020000  2**4
+                  CONTENTS, ALLOC, LOAD, DATA
+  6 .bss          000001a0  f40001c0  f40001c0  000201bc  2**4
+                  ALLOC
+  7 .pdr          000005a0  00000000  00000000  000201bc  2**2
+                  CONTENTS, READONLY
+  8 .comment      00000090  00000000  00000000  0002075c  2**0
+                  CONTENTS, READONLY
