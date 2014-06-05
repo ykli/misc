@@ -26,16 +26,13 @@ void WorkThread::Thread()
 		} while ((stream = streamList->get()) == NULL);
 
 		memset(params, 0, sizeof(params));
-		streamList
-		for (int step = 0; step < handlerList->totalStep() - 1; step++) {
+
+		for (int step = 0; step < handlerList->totalStep(); step++) {
 			Handler *handler;
 			handler = handlerList->getNodeByStep(step);
 			handler->doProcess(frame, params);
-			handler->afterProcess(frame, params);
 		}
-
-		handler = handlerList->getLastNode(step);
-		handler->doProcess(frame, params, stream);
+ /
 		frameList->put(frame);
 	}
 }
