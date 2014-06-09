@@ -3,8 +3,10 @@
 
 #include "common.h"
 #include "StreamList.hh"
+#include "WorkThread.hh"
 
 #define MAX_STREAM_NODE 5
+#define MAX_THREAD 3
 
 typedef struct pic_attr {
   int width;
@@ -14,7 +16,16 @@ typedef struct pic_attr {
 
 typedef struct video_attr {
   int fps;
+  int tpf;
 } video_attr_t;
+
+struct thread_node {
+  WorkThread *workThread;
+  struct thread_node *next;
+  struct thread_node *pre;
+};
+
+typedef struct thread_node thread_node_t;
 
 class StreamSource {
 public:
@@ -28,11 +39,12 @@ public:
   void addHandler();
   void delHandler();
   virtual ~StreamSource();
+  void tickThread();
 
 protected:
   StreamSource(int nThread, int nFrames, int w, int h, uint32_t fmt, int fps);
 
-  void tickThread();
+  void threadPollInit();
 
 private:
   int nWorkThread;
@@ -41,6 +53,9 @@ private:
   video_attr_t video;
   StreamList* streamList;
   int streamIsOn;
+  thread_node_t* workThreadPoll;
+  thread_node_t* curThreadNode;
+  pthread_t tid;
   //  HandlerList* handlerList;
 };
 

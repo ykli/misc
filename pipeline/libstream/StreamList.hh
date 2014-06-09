@@ -4,7 +4,7 @@
 #include "common.h"
 
 typedef enum {
-  EMPTY,
+  EMPTY = 0,
   FILLED,
   USED,
 } node_state_t;
@@ -16,7 +16,7 @@ struct stream_node {
   struct stream_node *pre;
 };
 
-typedef struct stream_node* stream_node_t;
+typedef struct stream_node stream_node_t;
 
 class StreamList {
 public:
@@ -26,22 +26,28 @@ public:
   frame_t* getEmptyStream();
   void putFilledStream(frame_t* f);
 
-  void fill(stream_node_t stream_node, void *from, int size);
-  void drop(stream_node_t stream_node);
+  void fill(stream_node_t *stream_node, void *from, int size);
+  void drop(stream_node_t *stream_node);
 
 protected:
   StreamList(int nNodes);
   virtual ~StreamList();
 
 private:
-  stream_node_t getBlankNode();
-  stream_node_t findNodeByFrame(frame_t *frame);
-  void updateStreamState(stream_node_t node, node_state_t state);
+  stream_node_t* getBlankNode();
+  stream_node_t* findNodeByFrame(frame_t *frame);
+  void updateStreamState(stream_node_t *node, node_state_t state);
+  void lock() { pthread_mutex_lock(&mutex); }
+  void unlock() { pthread_mutex_unlock(&mutex); }
+  void wakeUpList();
 
 private:
-  pthread_mutex_t lock;
+  pthread_mutex_t mutex;
+  pthread_cond_t cond;
   int nNodes;
-  stream_node_t curNode;
+  stream_node_t *streamNodes;
+  stream_node_t *curNode;
+  stream_node_t *curFilledNode;
 };
 
 #endif

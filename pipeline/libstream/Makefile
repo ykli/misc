@@ -9,7 +9,7 @@ INCLUDES =
 LIBS = 
 CFLAGS = $(INCLUDES) -g -Wall
 
-OBJS = StreamSource.o StreamList.o
+OBJS = StreamSource.o StreamList.o WorkThread.o
 
 %.o:%.c
 	$(CC) -c $(CFLAGS) $< -o $@

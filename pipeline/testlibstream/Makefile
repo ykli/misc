@@ -13,7 +13,7 @@ LIBS =	-L../libstream -lstream
 
 OBJS = main.o
 
-CFLAGS += $(INCLUDES) -D_LINUX -O2 -Wall -march=mips32r2 -Wa,-mmxu
+CFLAGS += $(INCLUDES) -D_LINUX -g -Wall -march=mips32r2 -Wa,-mmxu
 
 testlibstream: $(OBJS)
 	$(CPLUSPLUS) $(CFLAGS) $(LDFLAG) -o $@ $(OBJS) $(LIBS) -lm -lpthread -ldl -lrt

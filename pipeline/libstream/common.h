@@ -1,8 +1,16 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
-#include <pthread.h>
+#include <sys/syscall.h>
+#include <sys/time.h>
 #include <stdint.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <unistd.h>
+
+#define DEBUG_THREAD
 
 #undef offsetof
 #ifdef __compiler_offsetof
@@ -15,11 +23,25 @@
 	const typeof( ((type *)0)->member ) *__mptr = (ptr);	\
 	(type *)( (char *)__mptr - offsetof(type,member) );})
 
+#define gettid() syscall(__NR_gettid)
+
+#ifdef DEBUG_THREAD
+#define DBG(fmt, ...)	printf("[%ld]" fmt, gettid(), ##__VA_ARGS__)
+#else
+#define DBG		printf
+#endif
+#define LOCATION()	DBG("%s:%d\n", __func__, __LINE__)
+
 typedef struct frame {
   int index;
   void *addr;
   int size;
   struct timeval timestamp;
 } frame_t;
+
+static inline void getTimeStamp(struct timeval& tv_date)
+{
+	gettimeofday( &tv_date, NULL );
+}
 
 #endif
