@@ -11,7 +11,7 @@ private:
   int lock;
 
 protected:
-  void doProcess();
+  virtual void doProcess() = 0;
 };
 
 struct handler_node {

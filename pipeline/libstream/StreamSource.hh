@@ -5,9 +5,6 @@
 #include "StreamList.hh"
 #include "WorkThread.hh"
 
-#define MAX_STREAM_NODE 5
-#define MAX_THREAD 3
-
 typedef struct pic_attr {
   int width;
   int height;

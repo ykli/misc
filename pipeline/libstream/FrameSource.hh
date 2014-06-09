@@ -8,7 +8,8 @@
 class FrameSource {
 public:
   static FrameSource* createNew(void);
-  int getFrame(frame_t& frame);
+  void doProcess(frame_t& frame, uint32_t params);
+  virtual void getFrame(frame_t& frame, uint32_t params);
 
 private:
   FrameSource();

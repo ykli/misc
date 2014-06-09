@@ -40,22 +40,23 @@ void* work_thread(void *p)
 
 void WorkThread::Thread()
 {
-
 	while (1) {
 		frame_t frame;
 		frame_t *stream;
 
 		/* Wait for wake up signal */
-//		do {
-			pthread_mutex_lock(&mutex);
-			threadState = THREAD_SLEEP;
-			pthread_cond_wait(&cond, &mutex);
-			threadState = THREAD_WAKED;
-			pthread_mutex_unlock(&mutex);
+		pthread_mutex_lock(&mutex);
+		threadState = THREAD_SLEEP;
+
+		pthread_cond_wait(&cond, &mutex);
+
+		threadState = THREAD_WAKED;
+		pthread_mutex_unlock(&mutex);
+
 		stream = streamList->getEmptyStream();
-//		} while ((stream = streamList->getEmptyStream()) == NULL);
+
 		LOCATION();
-		usleep(400000);
+		usleep(60000);
 		LOCATION();
 #if 0
 		memset(params, 0, sizeof(params));

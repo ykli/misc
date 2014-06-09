@@ -93,6 +93,7 @@ void StreamSource::streamOff(void)
 
 void StreamSource::addHandler()
 {
+	
 }
 
 void StreamSource::delHandler()
