@@ -4,6 +4,7 @@
 #include "common.h"
 #include "StreamList.hh"
 #include "WorkThread.hh"
+#include "HandlerList.hh"
 
 typedef struct pic_attr {
   int width;
@@ -33,7 +34,9 @@ public:
   void streamOn();
   void streamOff();
 
-  void addHandler();
+  void addHandler(FrameSource *fsource);
+  void addHandler(FinalStep *fstep);
+  void addHandler(Filter *filter);
   void delHandler();
   virtual ~StreamSource();
   void tickThread();
@@ -50,10 +53,12 @@ private:
   video_attr_t video;
   StreamList* streamList;
   int streamIsOn;
+
   thread_node_t* workThreadPoll;
   thread_node_t* curThreadNode;
   pthread_t tid;
-  //  HandlerList* handlerList;
+
+  HandlerList* handlerList;
 };
 
 #if 0

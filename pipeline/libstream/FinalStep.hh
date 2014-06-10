@@ -1,18 +1,17 @@
-#ifndef __FINALSTEP_H__
-#define __FINALSTEP_H__
+#ifndef __FINALSTEP_HH__
+#define __FINALSTEP_HH__
 
-//#include "Handler.hh"
+#include "Handler.hh"
 
-//class FinalStep: public Handler {
-class FinalStep {
+class FinalStep: public Handler {
 public:
-  static FinalStep* createNew(void);
+  void process(frame_t& frame, uint32_t *params, void* addr);
 
-
-private:
+protected:
   FinalStep();
   ~FinalStep();
 
+  virtual void doProcess(frame_t& frame, uint32_t *params, void* addr) = 0;
 };
 
 #endif

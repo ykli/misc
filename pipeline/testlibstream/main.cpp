@@ -4,6 +4,11 @@
 #include <pthread.h>
 #include <StreamSource.hh>
 
+#include "V4L2Input.hh"
+#include "H264Encoder.hh"
+#include "AAAFilter.hh"
+#include "BBBFilter.hh"
+
 #define NUM_TEST_FRAMES		30
 #define MAX_FRAME_SIZE		(10 * 1024 * 1024)
 
@@ -14,6 +19,16 @@ int main(int argc, char** argv)
 
 	printf("Test StreamSource\n");
 	StreamSource *streamsource = StreamSource::createNew(2, 3, 640, 480, 0, 25);
+
+	V4L2Input* input = V4L2Input::createNew();
+	H264Encoder* encoder = H264Encoder::createNew();
+	AAAFilter* aaaFilter = AAAFilter::createNew();
+	BBBFilter* bbbFilter = BBBFilter::createNew();
+
+	streamsource->addHandler(input);
+	streamsource->addHandler(encoder);
+	streamsource->addHandler(aaaFilter);
+	streamsource->addHandler(bbbFilter);
 	
 	streamsource->streamOn();
 	

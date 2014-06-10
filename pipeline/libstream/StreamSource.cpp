@@ -19,6 +19,7 @@ StreamSource::StreamSource(int nThread, int nFrames, int w, int h, uint32_t fmt,
 	video.tpf = 1000000 / fps;
 
 	streamInit(nFrames);
+	handlerList = HandlerList::createNew();
 	threadPollInit();
 }
 
@@ -31,7 +32,7 @@ void StreamSource::threadPollInit()
 	workThreadPoll = (thread_node_t*)malloc(sizeof(thread_node_t) * nWorkThread);
 	for (int i = 0;  i < nWorkThread; i++) {
 		thread_node_t *wt = &workThreadPoll[i];
-		wt->workThread = WorkThread::createNew(NULL, NULL, streamList);
+		wt->workThread = WorkThread::createNew(handlerList, NULL, streamList);
 
 		if (i == 0)
 			wt->pre = &workThreadPoll[nWorkThread - 1];
@@ -91,9 +92,19 @@ void StreamSource::streamOff(void)
 //	pthread_join(tid, NULL);
 }
 
-void StreamSource::addHandler()
+void StreamSource::addHandler(FrameSource *fsource)
 {
-	
+	handlerList->add(fsource);
+}
+
+void StreamSource::addHandler(FinalStep *fstep)
+{
+	handlerList->add(fstep);
+}
+
+void StreamSource::addHandler(Filter *filter)
+{
+	handlerList->add(filter);
 }
 
 void StreamSource::delHandler()

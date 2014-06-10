@@ -11,7 +11,7 @@ INCLUDES = -I . \
 
 LIBS =	-L../libstream -lstream
 
-OBJS = main.o
+OBJS = main.o V4L2Input.o H264Encoder.o AAAFilter.o BBBFilter.o
 
 CFLAGS += $(INCLUDES) -D_LINUX -g -Wall -march=mips32r2 -Wa,-mmxu
 

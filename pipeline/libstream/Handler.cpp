@@ -1,7 +1,11 @@
+#include "Handler.hh"
 
-
-void Handler::process(frame_t frame, uint32& params, uint32_t* to)
+Handler::Handler()
 {
-	doProcess(frame, params);
-	afterProcess();
+	pthread_mutex_init(&mutex, NULL);
+}
+
+Handler::~Handler()
+{
+	pthread_mutex_destroy(&mutex);
 }

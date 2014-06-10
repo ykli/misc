@@ -1,11 +1,26 @@
 #include "FrameSource.hh"
 
-FrameSource* FrameSource::createNew(void)
+FrameSource::FrameSource()
+  : Handler()
 {
 
 }
 
-void FrameSource::doProcess(frame_t& frame, uint32_t params)
+FrameSource::~FrameSource()
 {
-	getFrame(frame, params);
+
+}
+
+void FrameSource::getFrame(frame_t& frame, uint32_t *params)
+{
+	lock();
+	doGetFrame(frame, params);
+	unlock();
+}
+
+void FrameSource::putFrame(frame_t& frame)
+{
+	lock();
+	doPutFrame(frame);
+	unlock();
 }

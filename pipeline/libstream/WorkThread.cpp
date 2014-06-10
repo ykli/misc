@@ -58,26 +58,24 @@ void WorkThread::Thread()
 		LOCATION();
 		usleep(60000);
 		LOCATION();
-#if 0
-		memset(params, 0, sizeof(params));
+//		memset(params, 0, sizeof(uint32_t));//This is wrong!!!
 
 		/* Get a new frame from Source */
-		handlerList->getFrameSource(source);
-		source->getFrame(frame);
+		FrameSource *source = handlerList->getFrameSource();
+		source->getFrame(frame, params);
 
 		/* Filter works */
-		for (int step = 1; step < handlerList->totalStep() - 1; step++) {
-			Filter *handler;
-			handler = handlerList->getNodeByStep(step);
-			handler->doProcess(frame, params);
-//			handler->afterProcess(frame, params);
+		for (int step = 0; step < handlerList->getNumOfFilters(); step++) {
+			Filter *filter = handlerList->getFilterByStep(step);;
+			filter->process(frame, params);
 		}
 
-		/* Last step */
-		final = handlerList->getLastNode(step);
-		final->doProcess(frame, params, stream->addr);
-		frameList->putFilledStream(stream);
-#endif
+		/* Final step */
+		FinalStep *final = handlerList->getFinalStep();
+		final->process(frame, params, stream->addr);
+
+		source->putFrame(frame);
+
 		getTimeStamp(stream->timestamp);
 		streamList->putFilledStream(stream);
 	}

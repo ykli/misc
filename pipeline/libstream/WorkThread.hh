@@ -3,7 +3,7 @@
 
 #include <pthread.h>
 #include "common.h"
-#include "Handler.hh"
+#include "HandlerList.hh"
 #include "FrameList.hh"
 #include "StreamList.hh"
 
