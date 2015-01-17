@@ -13,6 +13,7 @@
 
 extern CU_TestInfo LogTest[];
 extern CU_TestInfo ModuleTest[];
+extern CU_TestInfo VBMTest[];
 extern CU_TestInfo EmulatorTest[];
 extern CU_TestInfo FrameSourceTest[];
 extern CU_TestInfo EncoderTest[];
@@ -42,6 +43,7 @@ int main()
 		/* Basic component test */
 		{"Log Test", InitSuiteDefault, EndSuiteDefault, NULL, NULL, LogTest},
 		{"Module Test", InitSuiteDefault, EndSuiteDefault, NULL, NULL, ModuleTest},
+		{"VBM Test", InitSuiteDefault, EndSuiteDefault, NULL, NULL, VBMTest},
 
 		/* Emulator test */
 		{"Emulator Test", InitSuiteDefault, EndSuiteDefault, NULL, NULL, EmulatorTest},

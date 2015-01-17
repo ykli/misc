@@ -10,6 +10,7 @@
 #include <system/module.h>
 #include <system/constraints.h>
 #include <system/group.h>
+#include <system/vbm.h>
 
 #define TAG "Group"
 
@@ -31,6 +32,12 @@ void clear_all_modules(void)
 
 static int is_last_node(Group *group)
 {
+  Module *module = group->module;
+
+  if (module->num_of_observer == 0)
+    return 1;
+
+  return 0;
 }
 
 static int group_update(void *m, void *data)
@@ -41,7 +48,7 @@ static int group_update(void *m, void *data)
 	group->OnGroupDataUpdate(group, frame);
 
 	if (is_last_node(group))
-		VbmReleaseFrame(frame);
+		VBMReleaseFrame(frame);
 
 	return 0;
 }

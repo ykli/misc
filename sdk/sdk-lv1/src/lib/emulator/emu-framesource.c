@@ -112,28 +112,27 @@ static int on_framesource_group_data_update(Group *group, FrameInfo *frame)
 {
 	Device *dev = get_device_of_group(group);
 	Framesource *framesource = (Framesource *)device_pri(dev);
-#if 0
-	static int frame_i = 0;
-
-	FrameInfo *cur_frame = &framesource->v4l2_vbs[frame_i++ % framesource->nr_vbs];
-	cur_frame->timeStamp = frame_i * 100;
-
-	FrameInfo *cur_frame2 = &framesource->v4l2_vbs[frame_i++ % framesource->nr_vbs];
-	cur_frame2->timeStamp = frame_i * 100;
-	
-	group->for_channel_data[0] = cur_frame;
-	group->for_channel_data[1] = cur_frame2;
 
 	IMP_LOG_DBG(TAG, "[%s][%s] update\n",
 				framesource->device->name, group->module->name);
-#else
-	FrameInfo *cur_frame[max_chh_macro];
-	VbmGetFrames(nr_channel_enabled, cur_frame);
-	group->for_channel_data[0] = cur_frame[0];
-	group->for_channel_data[1] = cur_frame[1];
-#endif
-	/* V4L2 DQBUF here. Then get one frame. */
 
+	FrameInfo *cur_frame[max_chh_macro];
+	FrameInfo *frames[NR_MAX_FS_CHN_IN_GROUP];
+	int nr_frames, ret;
+	ret = VBMGetFrames(frames, &nr_frames);
+	if (ret < 0) {
+	  /* Error log*/
+	  return -1;
+	}
+
+	if (nr_frames != nr_channel_enabled)
+	  return -1;
+
+	int i;
+	for (i = 0; i < nr_frames; i++) {
+	  int channel_id = frames[i]->pool_idx;
+	  group->for_channel_data[channel_id] = frames[i];
+	}
 
 	return 0;
 }
@@ -186,6 +185,11 @@ static int framesource_destroy_group(int group_index)
 	dev->groups[group_index] = NULL;
 
 	return 0;
+}
+
+int IMP_EmuFrameSource_CreateGroup(int group_num)
+{
+
 }
 
 int EmuFrameSourceInit(void)

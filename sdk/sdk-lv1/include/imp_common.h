@@ -70,6 +70,7 @@ typedef struct {
 
 typedef struct {
 	int index;
+	int pool_idx;
 
 	int width;
 	int hight;
