@@ -22,12 +22,20 @@
 #define TMP_FRAME_SIZE 4096
 
 typedef struct {
+  int is_enabled;
+  IMP_FS_ChnAttr attr;
+} FSChannel;
+
+typedef struct {
 	Device *device;
 
 	pthread_t tid;
 
 	FrameInfo *v4l2_vbs;
 	int nr_vbs;
+
+  int v4l2_fd;
+  FSChannel channel[NR_MAX_FS_CHN_IN_GROUP];
 } Framesource;
 
 static Framesource *gFramesource = NULL;
@@ -35,6 +43,50 @@ static Framesource *gFramesource = NULL;
 Framesource *get_framesource(void)
 {
 	return gFramesource;
+}
+
+static int get_cluster(int *cluster_idx, uint64_t *time, void *pri)
+{
+  Framesource *framesource = (Framesource *)pri;
+  VBMCluster *cluster;
+
+  struct v4l2_buffer buf;
+  memset(&buf, 0, sizeof buf);
+  buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+  buf.memory = V4L2_MEMORY_USERPTR;
+  if (ioctl(framesource->v4l2_fd, VIDIOC_DQBUF, &buf) < 0) {
+    IMP_LOG_ERR(TAG, "VIDIOC_DQBUF error: %s\n", strerror(errno));
+    return -1;
+  }
+
+  *cluster_idx = buf.index;
+  *time = (uint64_t)((int64_t)buf.timestamp.tv_sec * 1000000 + (int64_t)buf.timestamp.tv_usec);
+
+  return 0;
+}
+
+static int release_cluster(VBMCluster *cluster, void *pri)
+{
+  Framesource *framesource = (Framesource *)pri;
+
+  struct v4l2_buffer buf;
+  memset(&buf, 0, sizeof buf);
+
+  buf.index = cluster->index;
+  buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+  buf.memory = V4L2_MEMORY_USERPTR; /* USERPTR as fixed implement. */
+  if (cluster->paddr)
+    buf.m.userptr = (long unsigned int)cluster->paddr;
+  else
+    buf.m.userptr = (long unsigned int)cluster->vaddr;
+  buf.length = cluster->length;
+
+  if (ioctl(framesource->v4l2_fd, VIDIOC_QBUF, &buf) < 0) {
+    IMP_LOG_ERR(TAG, "VIDIOC_QBUF error: %s\n", strerror(errno));
+    return -1;
+  }
+
+  return 0;
 }
 
 void* frame_pooling_thread(void *p)
@@ -187,11 +239,6 @@ static int framesource_destroy_group(int group_index)
 	return 0;
 }
 
-int IMP_EmuFrameSource_CreateGroup(int group_num)
-{
-
-}
-
 int EmuFrameSourceInit(void)
 {
 	int ret;
@@ -224,4 +271,147 @@ int EmuFrameSourceExit(void)
 	}
 
 	return 0;
+}
+
+int IMP_EmuFrameSource_SetChnAttr(uint32_t chn_num, IMP_FS_ChnAttr *chn_attr)
+{
+  if (chn_attr == NULL) {
+    IMP_LOG_ERR(TAG, "%s(): chn_attr is NULL\n");
+    return -1;
+  }
+
+  if (chn_num > (NR_MAX_FS_CHN_IN_GROUP - 1)) {
+    IMP_LOG_ERR(TAG, "%s(): Invalid chn_num %d\n", chn_num);
+    return -1;
+  }
+
+  Framesource *Framesource = get_framesource();
+  if (Framesource == NULL) {
+    IMP_LOG_ERR(TAG, "%s(): FrameSource is invalid,"
+		"maybe system was not inited yet.\n");
+    return -1;
+  }
+
+  FSChannel *channel = &Framesource->channel[chn_num];
+
+  channel->attr = *chn_attr;
+
+  return 0;
+}
+
+int IMP_EmuFrameSource_GetChnAttr(uint32_t chn_num, IMP_FS_ChnAttr *chn_attr)
+{
+  if (chn_attr == NULL) {
+    IMP_LOG_ERR(TAG, "%s(): chn_attr is NULL\n");
+    return -1;
+  }
+
+  if (chn_num > (NR_MAX_FS_CHN_IN_GROUP - 1)) {
+    IMP_LOG_ERR(TAG, "%s(): Invalid chn_num %d\n", chn_num);
+    return -1;
+  }
+
+  Framesource *Framesource = get_framesource();
+  if (Framesource == NULL) {
+    IMP_LOG_ERR(TAG, "%s(): FrameSource is invalid,"
+		"maybe system was not inited yet.\n");
+    return -1;
+  }
+
+  FSChannel *channel = &Framesource->channel[chn_num];
+
+  if (channel->attr.picWidth == 0) {
+    IMP_LOG_ERR(TAG, "%s(): chn_attr was not set yetNULL\n");
+    return -1;
+  } else {
+    *chn_attr = channel->attr;
+  }
+
+  return 0;
+}
+
+int IMP_EmuFrameSource_EnableChn(uint32_t chn_num)
+{
+  if (chn_num > (NR_MAX_FS_CHN_IN_GROUP - 1)) {
+    IMP_LOG_ERR(TAG, "%s(): Invalid chn_num %d\n", chn_num);
+    return -1;
+  }
+
+  Framesource *Framesource = get_framesource();
+  if (Framesource == NULL) {
+    IMP_LOG_ERR(TAG, "%s(): FrameSource is invalid,"
+		"maybe system was not inited yet.\n");
+    return -1;
+  }
+
+  FSChannel *channel = &Framesource->channel[chn_num];
+
+  channel->is_enabled = 1;
+
+  return 0;
+}
+
+int IMP_EmuFrameSource_DisableChn(uint32_t chn_num)
+{
+  if (chn_num > (NR_MAX_FS_CHN_IN_GROUP - 1)) {
+    IMP_LOG_ERR(TAG, "%s(): Invalid chn_num %d\n", chn_num);
+    return -1;
+  }
+
+  Framesource *Framesource = get_framesource();
+  if (Framesource == NULL) {
+    IMP_LOG_ERR(TAG, "%s(): FrameSource is invalid,"
+		"maybe system was not inited yet.\n");
+    return -1;
+  }
+
+  FSChannel *channel = &Framesource->channel[chn_num];
+
+  channel->is_enabled = 0;
+
+  return 0;
+}
+
+int IMP_EmuFrameSource_EnableDev(void)
+{
+  if (chn_num > (NR_MAX_FS_CHN_IN_GROUP - 1)) {
+    IMP_LOG_ERR(TAG, "%s(): Invalid chn_num %d\n", chn_num);
+    return -1;
+  }
+
+  Framesource *Framesource = get_framesource();
+  if (Framesource == NULL) {
+    IMP_LOG_ERR(TAG, "%s(): FrameSource is invalid,"
+		"maybe system was not inited yet.\n");
+    return -1;
+  }
+
+  
+
+  return 0;
+}
+
+int IMP_EmuFrameSource_DisableDev(void)
+{
+  if (chn_num > (NR_MAX_FS_CHN_IN_GROUP - 1)) {
+    IMP_LOG_ERR(TAG, "%s(): Invalid chn_num %d\n", chn_num);
+    return -1;
+  }
+
+  Framesource *Framesource = get_framesource();
+  if (Framesource == NULL) {
+    IMP_LOG_ERR(TAG, "%s(): FrameSource is invalid,"
+		"maybe system was not inited yet.\n");
+    return -1;
+  }
+
+  return 0;
+}
+
+int IMP_EmuFrameSource_StreamOn(void)
+{
+}
+
+int IMP_EmuFrameSource_StreamOff(void)
+{
 }

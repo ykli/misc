@@ -55,8 +55,8 @@ int VBMInit(VBMConfig *config, VBMInterface *interface)
 	}
 	memset(vbm, 0, struct_size);
 
-	memcpy(&vbm->config, config, sizeof(VBMConfig));
-	memcpy(&vbm->interface, interface, sizeof(VBMInterface));
+	vbm->config = *config;
+	vbm->interface = *interface;
 
 	int cluster_size = 0, i;
 	for (i = 0; i < config->nr_pools; i++) {
@@ -70,12 +70,13 @@ int VBMInit(VBMConfig *config, VBMInterface *interface)
 	}
 
 	for (i = 0; i < config->nr_cluster; i++) { /* i=v4l2 buf.index */
-	  uint32_t cluster_base = vbm->vb_base + cluster_size;
+	  uint32_t cluster_base = vbm->vb_base + cluster_size * i;
 	  VBMCluster *cluster = &vbm->clusters[i];
 	  cluster->index = i;
 	  cluster->ref_cnt = 0;
 	  cluster->vaddr = cluster_base;
 	  cluster->paddr = 0; /* Use pmem instead of DMMU */
+	  cluster->length = cluster_size;
 	  cluster->nr_buffers = config->nr_pools;
 	  pthread_mutex_init(&cluster->mutex, NULL);
 
@@ -129,9 +130,23 @@ int VBMGetFrames(FrameInfo **frames_p, int *nr_frames_p)
     return -1;
 
   VBMInterface *inf = &vbm->Interface;
-  VBMCluster *cluster = inf->GetCluster(inf->pri);
+  int cluster_idx, ret;
+  uint64_t time_stamp;
+
+  ret = inf->GetCluster(&cluster_idx, &time_stamp, inf->pri);
+  if (ret < 0) {
+    return ret;
+  }
+
+  VBMCluster *cluster = &vbm->clusters[cluster_idx];
+  int i;
 
   cluster->ref_cnt = cluster->nr_buffers;
+  for (i = 0; i < cluster->nr_buffers; i++) {
+    FrameInfo *frame = cluster->frames[i];
+    frame->timeStamp = time_stamp;
+  }
+
   *frames_p = cluster->frames[0];
   *nr_frames_p = cluster->nr_buffers;
 
@@ -156,7 +171,7 @@ int VBMReleaseFrame(FrameInfo *frame)
   pthread_mutex_unlock(&cluster->mutex);
 
   if (do_release)
-    inf->ReleaseCluster(inf->pri);
+    inf->ReleaseCluster(cluster, inf->pri);
 
   return 0;
 }
@@ -168,8 +183,12 @@ int VBMFlushFrames(void)
   if (vbm == NULL)
     return -1;
 
-  VBMInterface *inf = &vbm->Interface; 
-  inf->Flush(inf->pri);
+  VBMInterface *inf = &vbm->Interface;
+  int i;
+  /* Must be checked here! */
+  for (i = 0; i < vbm->nr_cluster; i++) {
+    inf->GetCluster(cluster, inf->pri);
+  }
 
   return 0;
 }
@@ -182,7 +201,11 @@ int VBMFillFrames(void)
     return -1;
 
   VBMInterface *inf = &vbm->Interface;
-  inf->Fill(inf->pri);
+  int i;
+  for (i = 0; i < vbm->nr_cluster; i++) {
+    VBMCluster *cluster = &vbm->clusters[i];
+    inf->ReleaseCluster(cluster, inf->pri);    
+  }
 
   return 0;
 }

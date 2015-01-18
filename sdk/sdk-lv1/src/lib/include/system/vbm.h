@@ -39,16 +39,17 @@ struct VBMCluster {
 
 	uint32_t vaddr;
 	uint32_t paddr;
+  int length;
 	int nr_buffers;
 	FrameInfo *frames[NR_MAX_POOLS];
 };
 
 struct VBMInterface {
-	void *pri;
-	int (*GetCluster)(void *pri);
-	int (*ReleaseCluster)(void *pri);
-	int (*Flush)(void *pri);
-	int (*Fill)(void *pri);	
+  void *pri;
+  int (*GetCluster)(int *cluster_idx, uint64_t *time, void *pri);
+  int (*ReleaseCluster)(VBMCluster *cluster, void *pri);
+  //  int (*FlushCluster)(VBMCluster *cluster, void *pri);
+  //  int (*FillCluster)(VBMCluster *cluster, void *pri);	
 };
 
 VBM *VBMGetInstance(void);

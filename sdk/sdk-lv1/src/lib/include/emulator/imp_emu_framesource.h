@@ -14,6 +14,7 @@
  */
 
 #include <stdint.h>
+#include <imp_common.h>
 
 #ifdef __cplusplus
 #if __cplusplus
@@ -21,8 +22,22 @@ extern "C"{
 #endif
 #endif /* __cplusplus */
 
-int IMP_EmuEncoder_CreateGroup(int group_num);
-int IMP_EmuEncoder_DestroyGroup(int group_num);
+typedef struct {
+  int picWidth;
+  int picHeight;
+  IMP_PixelFormat pixFmt;
+  int inFrmRate;
+  int outFrmRate;
+} IMP_FS_ChnAttr;
+
+int IMP_EmuFrameSource_SetChnAttr(uint32_t chn_num, IMP_FS_ChnAttr *chn_attr);
+int IMP_EmuFrameSource_GetChnAttr(uint32_t chn_num, IMP_FS_ChnAttr *chn_attr);
+int IMP_EmuFrameSource_EnableChn(uint32_t chn_num);
+int IMP_EmuFrameSource_DisableChn(uint32_t chn_num);
+int IMP_EmuFrameSource_EnableDev(void);
+int IMP_EmuFrameSource_DisableDev(void);
+int IMP_EmuFrameSource_StreamOn(void);
+int IMP_EmuFrameSource_StreamOff(void);
 
 #ifdef __cplusplus
 #if __cplusplus
