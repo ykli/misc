@@ -19,7 +19,7 @@ all: libimp.a
 export CFLAGS LDFLAG CC CPLUSPLUS LD AR STRIP SDK_TOP BUILD_DIR Q MAKE
 
 #Modules to be compiled.
-MODULES = imp_log imp_system emulator #imp_enc
+MODULES = imp_log imp_system emulator imp_encoder imp_framesource
 
 M_OBJS = $(foreach m, $(MODULES), $(m)/$(m).o)
 

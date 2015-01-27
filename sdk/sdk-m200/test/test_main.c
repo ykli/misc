@@ -18,6 +18,7 @@ extern CU_TestInfo EmulatorTest[];
 extern CU_TestInfo SystemTest[];
 extern CU_TestInfo FrameSourceTest[];
 extern CU_TestInfo EncoderTest[];
+extern CU_TestInfo SysutilsTest[];
 extern CU_TestInfo EntireTest[];
 extern CU_TestInfo ErrorTest[];
 
@@ -53,6 +54,9 @@ int main()
 		{"System Test", InitSuiteDefault, EndSuiteDefault, NULL, NULL, SystemTest},
 		{"FrameSource Test", InitSuiteDefault, EndSuiteDefault, NULL, NULL, FrameSourceTest},
 		{"Encoder Test", InitSuiteDefault, EndSuiteDefault, NULL, NULL, EncoderTest},
+
+		/* sysutils test */
+		{"Sysutils Test", InitSuiteDefault, EndSuiteDefault, NULL, NULL, SysutilsTest},
 
 		/* Integrated test */
 		{"Entire Test", InitSuiteDefault, EndSuiteDefault, NULL, NULL, EntireTest},

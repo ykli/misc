@@ -12,7 +12,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include <linux/videodev2.h>
+#include <sys/time.h>
 
 #include <imp/imp_constraints.h>
 #include <imp/imp_log.h>
@@ -29,10 +29,6 @@
 
 #define TAG "emu-Framesource"
 
-/* V4L2 extend */
-#define V4L2_CID_FLOW_VIDEONUM			(V4L2_CID_PRIVATE_BASE + 1)
-#define V4L2_CID_FLOW_CFG_VIDEO			(V4L2_CID_PRIVATE_BASE + 2)
-
 typedef struct {
 	int is_enabled;
 	IMPFSChnAttr attr;
@@ -42,31 +38,73 @@ typedef struct {
 	Device *device;
 
 	pthread_t tid;
-	int v4l2_fd;
 
 	IMPFSDevAttr attr;
 	FSChannel channel[NR_MAX_FS_CHN_IN_GROUP];
 } Framesource;
 
+typedef struct {
+	int index;
+	uint32_t vaddr;
+	int length;
+	struct timeval timestamp;
+} EmuV4L2Buffer;
+
 static Framesource *gFramesource = NULL;
+static EmuV4L2Buffer g_emu_vb[NR_MAX_CLUSTERS];
+static int nr_emu_vb = 0;
 
 Framesource *get_framesource(void)
 {
 	return gFramesource;
 }
 
-static int get_cluster(int *cluster_idx, uint64_t *time, void *pri)
+static int v4l2_emu_qbuf(EmuV4L2Buffer *vb)
 {
-	Framesource *framesource = (Framesource *)pri;
+	int index = vb->index;
 
-	struct v4l2_buffer buf;
-	memset(&buf, 0, sizeof buf);
-	buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-	buf.memory = V4L2_MEMORY_USERPTR;
-	if (ioctl(framesource->v4l2_fd, VIDIOC_DQBUF, &buf) < 0) {
-		IMP_LOG_ERR(TAG, "VIDIOC_DQBUF error: %s\n", strerror(errno));
+	g_emu_vb[index].index = vb->index;
+	g_emu_vb[index].vaddr = vb->vaddr;
+	g_emu_vb[index].length = vb->length;
+
+	return 0;
+}
+
+static int v4l2_emu_dqbuf(EmuV4L2Buffer *vb)
+{
+	static int who = 0;
+
+	if (!nr_emu_vb) {
+		IMP_LOG_ERR(TAG, "Emu buffer hasn't inited yet\n");
 		return -1;
 	}
+
+	int index = who++ % nr_emu_vb;
+
+	vb->index = g_emu_vb[index].index;
+	vb->vaddr = g_emu_vb[index].vaddr;
+	vb->length = g_emu_vb[index].length;
+	gettimeofday(&vb->timestamp, NULL);
+
+	/* Draw sth. Haha. */
+	int i;
+	for (i = 0; i < vb->length; i++) {
+		uint8_t *addr = (uint8_t *)vb->vaddr;
+		if (((i % 128) < 64) && ((index % 2) == 0))
+			*addr = 0xff;
+		else
+			*addr = 0;
+	}
+
+	return 0;
+}
+
+static int get_cluster(int *cluster_idx, uint64_t *time, void *pri)
+{
+	EmuV4L2Buffer buf;
+	memset(&buf, 0, sizeof buf);
+
+	v4l2_emu_dqbuf(&buf);
 
 	*cluster_idx = buf.index;
 	*time = (uint64_t)((int64_t)buf.timestamp.tv_sec * 1000000 + (int64_t)buf.timestamp.tv_usec);
@@ -78,24 +116,13 @@ static int get_cluster(int *cluster_idx, uint64_t *time, void *pri)
 
 static int release_cluster(VBMCluster *cluster, void *pri)
 {
-	Framesource *framesource = (Framesource *)pri;
-
-	struct v4l2_buffer buf;
+	EmuV4L2Buffer buf;
 	memset(&buf, 0, sizeof buf);
 
 	buf.index = cluster->index;
-	buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-	buf.memory = V4L2_MEMORY_USERPTR; /* USERPTR as fixed implement. */
-	if (cluster->paddr)
-		buf.m.userptr = (long unsigned int)cluster->paddr;
-	else
-		buf.m.userptr = (long unsigned int)cluster->vaddr;
+	buf.vaddr = cluster->vaddr;
 	buf.length = cluster->length;
-
-	if (ioctl(framesource->v4l2_fd, VIDIOC_QBUF, &buf) < 0) {
-		IMP_LOG_ERR(TAG, "VIDIOC_QBUF error: %s\n", strerror(errno));
-		return -1;
-	}
+	v4l2_emu_qbuf(&buf);
 
 	IMP_LOG_DBG(TAG, "release cluster:%d \n", buf.index);
 
@@ -106,32 +133,12 @@ void* frame_pooling_thread(void *p)
 {
 	Framesource *fs = (Framesource *)p;
 
-	while (1) { /* Should be modified!! */
-		void *tmp;
-
+	while (1) {
 		IMP_LOG_DBG(TAG, "Tick\n");
-#if 0
-		struct timeval tv = { 2, 0 };
-		fd_set fds;
 
-		FD_ZERO(&fds);
-		FD_SET(fs->v4l2_fd, &fds);
-
-		int ret = select(fs->v4l2_fd + 1, &fds, NULL, NULL, &tv);
-		if (ret < 0) {
-			IMP_LOG_ERR(TAG, "select() error: %s\n", strerror(errno));
-			return NULL;
-		} else if (ret == 0) {
-			IMP_LOG_ERR(TAG, "select() timeout\n");
-			continue;
-		}
-#endif
-		/* Ugly implement start... */
 		Group *group = fs->device->groups[0];
-		Module *module = group->module;
-
-		module->Update(module, &tmp);
-		usleep(40000);
+		group_tick(group);
+		usleep(1000000 / fs->attr.inFrmRate);
 	}
 
 	return NULL;
@@ -141,81 +148,12 @@ static int framesource_init(Framesource *framesource)
 {
 	int ret, i;
 
-	/* Init V4L2 Device */
-	const char *dev_name = "/dev/video0";
-	framesource->v4l2_fd = open(dev_name, O_RDWR);
-	if (framesource->v4l2_fd < 0) {
-		IMP_LOG_ERR(TAG, "open %s error: %s\n", dev_name, strerror(errno));
-		return -1;
-	}
-
-	int input_num = 0;
-	ret = ioctl(framesource->v4l2_fd, VIDIOC_S_INPUT, &input_num);
-	if (ret < 0) {
-		IMP_LOG_ERR(TAG, "Unable to set video input device: %s\n",
-					strerror(errno));
-		goto close;
-	}
-
 	/* Init Channels. */
-	int nr_chn_to_enable = 0; /* Ugly implement due to ugly V4L2. */
+	int nr_chn_to_enable = 0;
 	for (i = 0; i < NR_MAX_FS_CHN_IN_GROUP; i++) {
 		FSChannel *channel = &framesource->channel[i];
 		if (channel->is_enabled)
 			nr_chn_to_enable++;
-	}
-
-	struct v4l2_control ctrl;
-	memset(&ctrl, 0, sizeof(ctrl));
-
-	ctrl.id = V4L2_CID_FLOW_VIDEONUM;
-	ctrl.value = nr_chn_to_enable;
-	if (ioctl(framesource->v4l2_fd, VIDIOC_S_CTRL, &ctrl) < 0) {
-		IMP_LOG_ERR(TAG, "Unable to set video ctrol: %s\n",
-					strerror(errno));
-		goto close;
-	}
-
-	for (i = 0; i < NR_MAX_FS_CHN_IN_GROUP; i++) {
-		FSChannel *channel = &framesource->channel[i];
-		if (!channel->is_enabled)
-			continue;
-
-		/* Choose one V4L2 channel. */
-		memset(&ctrl, 0, sizeof(ctrl));
-		ctrl.id = V4L2_CID_FLOW_CFG_VIDEO;
-		ctrl.value = i;
-		if (ioctl(framesource->v4l2_fd, VIDIOC_S_CTRL, &ctrl) < 0) {
-			IMP_LOG_ERR(TAG, "Unable to set video ctrol: %s\n",
-						strerror(errno));
-			goto close;
-		}
-
-		/* Init V4L2 Channel. */
-		struct v4l2_format fmt;
-		memset(&fmt, 0, sizeof fmt);
-		fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-		fmt.fmt.pix.width = channel->attr.picWidth;
-		fmt.fmt.pix.height = channel->attr.picHeight;
-		fmt.fmt.pix.pixelformat = imppixfmt_to_v4l2pixfmt(channel->attr.pixFmt);
-		fmt.fmt.pix.field = V4L2_FIELD_ANY;
-
-		if (ioctl(framesource->v4l2_fd, VIDIOC_S_FMT, &fmt) < 0) {
-			IMP_LOG_ERR(TAG, "Unable to set video format(chn%d): %s\n",
-						i, strerror(errno));
-			goto close;
-		}
-	}
-
-	/* Init V4L2 videobuffer, USERPTR support only. */
-	struct v4l2_requestbuffers req;
-	memset(&req, 0, sizeof req);
-	req.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-	req.memory = V4L2_MEMORY_USERPTR;
-	req.count = framesource->attr.nrVBs;
-	if (ioctl(framesource->v4l2_fd, VIDIOC_REQBUFS, &req) < 0) {
-		IMP_LOG_ERR(TAG, "VIDIOC_REQBUFS error: %s\n", strerror(errno));
-		goto close;
 	}
 
 	/* Init VBM. */
@@ -239,20 +177,22 @@ static int framesource_init(Framesource *framesource)
 		goto close;
 	}
 
+	nr_emu_vb = framesource->attr.nrVBs;
+
 	return 0;
 close:
-	close(framesource->v4l2_fd);
 	return -1;
 }
 
 static void framesource_exit(Framesource *framesource)
 {
 	int ret;
-	close(framesource->v4l2_fd);
 
 	ret = VBMExit();
 	if (ret < 0)
 		IMP_LOG_ERR(TAG, "VBMExit() failed, ret=%d", ret);
+
+	nr_emu_vb = 0;
 }
 
 static Framesource *alloc_framesource(void)
@@ -279,7 +219,7 @@ static void free_framesource(Framesource *framesource)
 	free_device(dev);
 }
 
-static int on_framesource_group_data_update(Group *group, IMPFrameInfo *frame)
+static int on_framesource_group_data_update(Group *group, IMPFrameInfo *d)
 {
 	Device *dev = get_device_of_group(group);
 	Framesource *framesource = (Framesource *)device_pri(dev);
@@ -571,12 +511,6 @@ int IMP_EmuFrameSource_StreamOn(void)
 		return -1;
 	}
 
-	int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-	if (ioctl(framesource->v4l2_fd, VIDIOC_STREAMON, &type) < 0) {
-		IMP_LOG_ERR(TAG, "VIDIOC_STREAMON failed: %s", strerror(errno));
-		return -1;
-	}
-
 	/* Init the tick thread. */
 	ret = pthread_create(&framesource->tid, NULL,
 						 frame_pooling_thread, framesource);
@@ -597,17 +531,15 @@ int IMP_EmuFrameSource_StreamOff(void)
 		return -1;
 	}
 
+	pthread_cancel(framesource->tid);
+	pthread_join(framesource->tid, NULL);
+
 	int ret = VBMFlushFrames();
 	if (ret < 0) {
 		IMP_LOG_ERR(TAG, "%s(): VBMFlushFrames() failed, ret=%d", ret);
 		return -1;
 	}
 
-	int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-	if (ioctl(framesource->v4l2_fd, VIDIOC_STREAMOFF, &type) < 0) {
-		IMP_LOG_ERR(TAG, "VIDIOC_STREAMOFF failed: %s", strerror(errno));
-		return -1;
-	}
 
 	return 0;
 }

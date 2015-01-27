@@ -1,7 +1,7 @@
 include $(SDK_TOP)/config.mk
 
-OBJS =  key.o
+OBJS =  framesource.o
 
-sysutils_key.o: $(OBJS)
+imp_framesource.o: $(OBJS)
 	@echo "  [LD]	$(subst $(BUILD_DIR)/,,$(shell pwd)/$@)"
 	$(LD) $(LDFLAG) $(OBJS) -o $@

@@ -161,3 +161,33 @@ int IMP_EmuEncoder_DestroyGroup(int group_index)
 
 	return 0;
 }
+
+int IMP_EmuEncoder_CreateChn(int chnNum, void *chnAttr)
+{
+	return 0;
+}
+
+int IMP_EmuEncoder_DestroyChn(int chnNum)
+{
+	return 0;
+}
+
+int IMP_EmuEncoder_RegisterChn(int groupNum, int chnNum)
+{
+	return 0;
+}
+
+int IMP_EmuEncoder_UnregisterChn(int chnNum)
+{
+	return 0;
+}
+
+int IMP_EmuEncoder_GetStream(int chnNum, uint32_t *stream, int blockFlag)
+{
+	return 0;
+}
+
+int IMP_EmuEncoder_ReleaseStream(int chnNum, uint32_t *stream)
+{
+	return 0;
+}

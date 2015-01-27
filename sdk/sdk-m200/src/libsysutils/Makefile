@@ -19,7 +19,7 @@ all: libsysutils.a
 export CFLAGS LDFLAG CC CPLUSPLUS LD AR STRIP SDK_TOP BUILD_DIR Q MAKE
 
 #Modules to be compiled.
-MODULES = sysutils_battery sysutils_key
+MODULES = sysutils_base sysutils_battery sysutils_misc
 
 M_OBJS = $(foreach m, $(MODULES), $(m)/$(m).o)
 

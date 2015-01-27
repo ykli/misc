@@ -40,7 +40,8 @@ static int remove_observer(Module *modsub, Module *modob)
 		}
 	}
 
-	printf("%s %s error: Can't find observer: %s\n", modsub->name, __func__, modob->name);
+	printf("%s %s error: Can't find observer: %s\n",
+		   modsub->name, __func__, modob->name);
 
 	return -1;
 }
@@ -114,6 +115,9 @@ static int update(Module *modob, void **data)
 {
 	int ret;
 
+	if (*data == NULL)
+		return 0;
+
 	ret = write_msg(modob, *data);
 	if (ret < 0)
 		return ret;
@@ -155,7 +159,8 @@ Module *AllocModule(const char *name, int extras)
 
 	i = strlen(name);
 	if (i > MAX_MODULE_NAME_LEN) {
-		printf("The length of name %d is longer that %d\n", i, MAX_MODULE_NAME_LEN);
+		printf("The length of name %d is longer that %d\n",
+			   i, MAX_MODULE_NAME_LEN);
 		goto free;
 	}
 	strcpy(module->name, name);

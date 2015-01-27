@@ -10,23 +10,23 @@
 
 #include "imp_common.h"
 
-/**
- * @file
- * IMP系统模块头文件
- */
-
-/**
- * @defgroup System
- * @brief System control -----------------TODO. 
- * @{
- */
-
 #ifdef __cplusplus
 #if __cplusplus
 extern "C"
 {
 #endif
 #endif /* __cplusplus */
+
+/**
+ * @file
+ * IMP系统模块头文件
+ */
+
+/**
+ * @defgroup IMP系统控制
+ * @brief System control -----------------TODO.
+ * @{
+ */
 
 /**
  * @fn int IMP_System_Init(void)
@@ -160,7 +160,7 @@ int IMP_System_Bind(IMPChannel *srcChn, IMPChannel *dstChn);
 int IMP_System_UnBind(IMPChannel *srcChn, IMPChannel *dstChn);
 
 /**
- * @fn IMP_System_GetBindbyDest(IMPChannel *dstChn, IMPChannel *srcChn)
+ * @fn int IMP_System_GetBindbyDest(IMPChannel *dstChn, IMPChannel *srcChn)
  *
  * 获取绑定在目的通道的源通道信息.
  *

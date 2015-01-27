@@ -52,6 +52,7 @@ install:
 	@$(foreach m, $(Target), $(MAKE) -s -C $(m) install;)
 	@mkdir -p $(INSTALL_DIR)/include
 	@cp -r ./include/* $(INSTALL_DIR)/include
+	@echo "  [INSTALL]	$(INSTALL_DIR)"
 
 distclean: clean
 	@rm $(INSTALL_DIR) -rf

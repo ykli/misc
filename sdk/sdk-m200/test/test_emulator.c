@@ -1,5 +1,5 @@
 /*
- * Ingenic IMP SDK test main file.
+ * Ingenic IMP SDK emulator test.
  *
  * Copyright (C) 2014 Ingenic Semiconductor Co.,Ltd
  * Author: Zoro <ykli@ingenic.cn>
@@ -96,7 +96,7 @@ static int ImpFrameSourceInit()
 
 	/* Configure Dev attr */
 	IMPFSDevAttr imp_dev_attr;
-	imp_dev_attr.inFrmRate = 25;
+	imp_dev_attr.inFrmRate = 2;
 	imp_dev_attr.nrVBs = 4;
 	ret = IMP_EmuFrameSource_SetDevAttr(&imp_dev_attr);
 	if (ret < 0) {

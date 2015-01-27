@@ -21,12 +21,14 @@ INCLUDES  = -I${CUNIT_DIR}/include \
 
 LIBS =	-L$(CUNIT_DIR)/lib -lcunit \
 	-L$(NCURSES_DIR)/lib -lncurses \
-	-L$(INSTALL_DIR)/lib -limp
+	-L$(INSTALL_DIR)/lib -limp \
+	-L$(INSTALL_DIR)/lib -lsysutils \
 
 OBJS =	test_main.o \
 	test_log.o test_module.o test_vbm.o \
 	test_emulator.o \
 	test_system.o test_framesource.o test_encoder.o \
+	test_sysutils.o \
 	test_entire.o test_error.o
 
 all:	test-sdk

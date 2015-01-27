@@ -8,11 +8,6 @@
 #ifndef __IMP_COMMON_H__
 #define __IMP_COMMON_H__
 
-/**
- * @file
- * SDK-M200公共数据结构头文件
- */
-
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -21,6 +16,11 @@ extern "C"
 {
 #endif
 #endif /* __cplusplus */
+
+/**
+ * @file
+ * SDK-M200公共数据结构头文件
+ */
 
 /**
  * IMP 设备ID枚举定义.

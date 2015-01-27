@@ -27,6 +27,15 @@ struct Group {
 	int (*OnGroupDataUpdate)(Group *modulex, IMPFrameInfo *data);
 };
 
+static inline void group_tick(Group *group)
+{
+	static int i;
+	static void *tmp = &i;
+	Module *module = group->module;
+
+	module->Update(module, &tmp);
+}
+
 Module *get_module(IMPDeviceID dev_id, int grp_id);
 int get_module_location(Module *module, IMPDeviceID *dev_id, int *grp_id);
 void clear_all_modules(void);
