@@ -20,6 +20,7 @@
 #include "../src/libimp/include/system/system.h"
 #include "../src/libimp/include/emulator/imp_emu_framesource.h"
 #include "../src/libimp/include/emulator/imp_emu_encoder.h"
+#include "../src/libimp/include/emulator/imp_emu_fakedev.h"
 
 #define TAG "EmulatorTest"
 
@@ -32,8 +33,6 @@ static inline int start_isp() { return 0;}
 static inline int encoder_config() { return 0;}
 static inline int encoder_enable_channel() { return 0;}
 static inline int start_encoder() { return 0;}
-static inline int ImpStreamOff() { return 0;}
-static inline int save_stream() { return 0;}
 static inline int bind() { return 0;}
 static inline int Select() { return 0;}
 
@@ -52,39 +51,15 @@ static int ImpSystemExit()
 	return 0;
 }
 
-typedef struct {
-	int width;
-	int hight;
-	int fps;
-} FrameSourceInputAttr;
 
-typedef struct {
-	FrameSourceInputAttr InputAttr;
-	int NumOfChannel;
-	
-} IMP_FrameSourceDevAttr;
-
-typedef struct {
-	int fps;
-} FrameSourceChnAttr;
-
-#if 0
-get_group()
+static int save_stream(EmuStreamBuffer *stream)
 {
+	IMP_LOG_DBG(TAG, "stream bufaddr:%p len=%d ts=%lld\n",
+				stream->buf, stream->length, stream->timestamp);
 
-}
-
-get_device()
-{
-
-}
-#endif
-#if 0
-int get_framesource()
-{
 	return 0;
 }
-#endif
+
 int IMP_FrameSourceGetMaxChn()
 {
 	return 0;
@@ -195,7 +170,11 @@ static int ImpStreamOn()
 	IMP_EmuFrameSource_StreamOn();
 	return 0;
 }
-
+static int ImpStreamOff()
+{
+	IMP_EmuFrameSource_StreamOff();
+	return 0;
+}
 static int ImpEncoderInit()
 {
 	int ret;
@@ -206,15 +185,13 @@ static int ImpEncoderInit()
 		return -1;
 	}
 
-	ret = IMP_EmuEncoder_CreateGroup(1);
-	if (ret < 0) {
-		IMP_LOG_ERR(TAG, "IMP_EmuEncoder_CreateGroup(1) error: %d\n", ret);
-		return -1;
-	}
+	IMPEmuEncoderCHNAttr chn_attr;
+	chn_attr.encAttr = 1;
+	chn_attr.encRcAttr = 2;
+	IMP_EmuEncoder_CreateChn(0, &chn_attr);
 
-	encoder_config();
-	encoder_enable_channel();
-	start_encoder();
+	IMP_EmuEncoder_RegisterChn(0, 0);
+
 	IMP_LOG_DBG(TAG, "%s(): OK.\n", __func__);
 
 	return 0;
@@ -225,29 +202,26 @@ static int ImpEncoderExit()
 	return 0;
 }
 
+static int ImpFakeDevInit(void)
+{
+	IMP_EmuFakedev_CreateGroup(0, 0, NULL);
+	IMP_EmuFakedev_CreateGroup(1, 0, NULL);
+	return 0;
+}
+
 static int ImpBindModules()
 {
-	IMPChannel framesource1, framesource2;
-	IMPChannel encoder1, encoder2;
+	IMPChannel framesource_chn0 = {DEV_ID_EMU_FS, 0, 0};
+	IMPChannel framesource_chn1 = {DEV_ID_EMU_FS, 0, 1};
+	IMPChannel encoder = { DEV_ID_EMU_ENC, 0, 0};
+	IMPChannel fakedev0 = { DEV_ID_EMU_FAKE(0), 0, 0 };
+	IMPChannel fakedev1 = { DEV_ID_EMU_FAKE(1), 0, 0 };
 
-	framesource1.devID = DEV_ID_EMU_FS;
-	framesource1.grpID = 0;
-	framesource1.chnID = 0;
+	IMP_System_Bind(&framesource_chn0, &fakedev0);
+	IMP_System_Bind(&fakedev0, &encoder);
+	IMP_System_Bind(&framesource_chn1, &fakedev1);
 
-	framesource2.devID = DEV_ID_EMU_FS;
-	framesource2.grpID = 0;
-	framesource2.chnID = 1;
-
-	encoder1.devID = DEV_ID_EMU_ENC;
-	encoder1.grpID = 0;
-	encoder1.chnID = 0;
-
-	encoder2.devID = DEV_ID_EMU_ENC;
-	encoder2.grpID = 1;
-	encoder2.chnID = 0;
-
-	IMP_System_Bind(&framesource1, &encoder1);
-	IMP_System_Bind(&framesource2, &encoder2);
+	system_bind_dump();
 
 	/* Bind modules here. */
 	return 0;
@@ -279,6 +253,12 @@ static void test_case_1() /* SYS+emuFS+emuENC */
 		goto error;
 	}
 
+	ret = ImpFakeDevInit();
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "IMP FakeDev init failed\n");
+		goto error;
+	}
+
 	ret = ImpBindModules();
 	if (ret < 0) {
 		IMP_LOG_ERR(TAG, "IMP Encoder init failed\n");
@@ -290,28 +270,13 @@ static void test_case_1() /* SYS+emuFS+emuENC */
 		IMP_LOG_ERR(TAG, "IMP stream on error\n");
 		goto error;
 	}
-	while (1)
-		sleep(1);
 
 	int nr_frame_to_encode = 10;
 	while (nr_frame_to_encode--) {
-		int timeout_cnt = 0;
-		ret = Select();
-		if (ret < 0) {
-			IMP_LOG_ERR(TAG, "select Encoder fd error: %s\n", strerror(errno));
-			goto error;
-
-		} else if (ret == 0) {
-			IMP_LOG_ERR(TAG, "select Encoder fd timeout %d times\n", timeout_cnt);
-			continue;
-
-		} else {
-//			IMP_VENC_GetStream();
-			save_stream();
-//			IMP_VENC_ReleaseStream();
-
-			timeout_cnt = 0;
-		}
+		EmuStreamBuffer stream;
+		IMP_EmuEncoder_GetStream(0, &stream, 0);
+		save_stream(&stream);
+		IMP_EmuEncoder_ReleaseStream(0, &stream);
 	}
 
 	ret = ImpStreamOff();

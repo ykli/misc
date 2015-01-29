@@ -6,4 +6,4 @@ OBJS =  event_tag_map.o logd_write.o logprint.o implog.o
 
 imp_log.o: $(OBJS)
 	@echo "  [LD]	$(subst $(BUILD_DIR)/,,$(shell pwd)/$@)"
-	$(LD) $(LDFLAG) $(OBJS) -o $@
+	$(LD) $(OBJS) $(LDFLAG) -o $@

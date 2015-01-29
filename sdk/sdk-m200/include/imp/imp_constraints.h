@@ -31,7 +31,9 @@
 #define NR_MAX_V4L2_BUFFERS			NR_MAX_CLUSTERS
 
 /* Encoder */
-#define NR_MAX_ENC_GROUPS			4
+#define NR_MAX_ENC_GROUPS			1
 #define NR_MAX_ENC_CHN_IN_GROUP		2
+#define NR_MAX_ENC_CHN				2
+#define NR_MAX_ENC_CHN_STREAM		10
 
 #endif /* __IMP_CONSTRAINTS_H__ */

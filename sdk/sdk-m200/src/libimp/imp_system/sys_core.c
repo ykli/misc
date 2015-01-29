@@ -34,10 +34,12 @@ struct system_function
 EXTERN_SYS_FUNC(EmuFrameSourceInit, EmuFrameSourceExit);
 EXTERN_SYS_FUNC(EmuEncoderInit, EmuEncoderExit);
 EXTERN_SYS_FUNC(EmuFakedevInit, EmuFakedevExit);
+EXTERN_SYS_FUNC(EncoderInit, EncoderExit);
 struct system_function sys_funcs[] = {
 	SYSTEM_FUNC("EmuFrameSource", EmuFrameSourceInit, EmuFrameSourceExit),
 	SYSTEM_FUNC("EmuEncoder", EmuEncoderInit, EmuEncoderExit),
 	SYSTEM_FUNC("EmuFakeDev", EmuFakedevInit, EmuFakedevExit),
+	SYSTEM_FUNC("Encoder", EncoderInit, EncoderExit),
 };
 
 int system_init(void)
@@ -97,7 +99,7 @@ int system_bind(IMPChannel *srcChn, IMPChannel *dstChn)
 				__func__, module_dst->name, module_src->name);
 
 	Group *group = (Group *)module_pri(module_src);
-	if (dstChn->chnID >= group->nr_channels) {
+	if (srcChn->chnID >= group->nr_channels) {
 		IMP_LOG_ERR(TAG, "%s() error: invalid dst channel\n", __func__);
 		return -1;
 	}

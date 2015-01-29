@@ -86,6 +86,11 @@ static int on_fakedev_group_data_update(Group *group, IMPFrameInfo *frame)
 	if (fakedev->call_back[group->group_index])
 		fakedev->call_back[group->group_index](frame);
 
+	int i;
+	for (i = 0; i < group->nr_channels; i++) {
+		group->for_channel_data[i] = frame;
+	}
+
 	return 0;
 }
 

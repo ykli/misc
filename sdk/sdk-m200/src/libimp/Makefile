@@ -41,7 +41,7 @@ clean:
 	@find . -type f \( -name '*~' -o -name '*.o' \) -print | xargs rm -f
 
 distclean: clean
-	@find . -type f \( -name '*.a' -o -name '*.so' \) -print | xargs rm -f
+	@rm -f *.a *.so
 
 install:
 	@mkdir -p $(INSTALL_DIR)/lib

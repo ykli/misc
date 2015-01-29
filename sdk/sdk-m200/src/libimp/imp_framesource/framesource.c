@@ -138,8 +138,6 @@ void* frame_pooling(void *p)
 	Framesource *fs = (Framesource *)p;
 
 	while (1) {
-		void *tmp = &ret;
-
 		IMP_LOG_DBG(TAG, "Tick\n");
 
 		struct timeval tv = { 2, 0 };
@@ -161,11 +159,8 @@ void* frame_pooling(void *p)
 			continue;
 
 		IMP_LOG_DBG(TAG, "select !\n");
-		/* Ugly implement start... */
 		Group *group = fs->device->groups[0];
-		Module *module = group->module;
-
-		module->Update(module, &tmp);
+		group_tick(group);
 	}
 
 	return NULL;

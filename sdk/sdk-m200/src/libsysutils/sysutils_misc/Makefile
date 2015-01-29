@@ -4,4 +4,4 @@ OBJS =  key.o led.o lumina.o
 
 sysutils_misc.o: $(OBJS)
 	@echo "  [LD]	$(subst $(BUILD_DIR)/,,$(shell pwd)/$@)"
-	$(LD) $(LDFLAG) $(OBJS) -o $@
+	$(LD) $(OBJS) $(LDFLAG) -o $@
